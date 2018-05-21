@@ -1,0 +1,6 @@
+[package]
+name = "concmerge"
+version = "0.1.0"
+authors = ["Matthew Kunjummen <mkunjummen@gmail.com>"]
+
+[dependencies]
