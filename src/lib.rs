@@ -13,7 +13,7 @@ pub mod csorts {
         ret
     }
 
-    pub fn mergesort<T: Send + Sync + Ord + Clone>(arr: &mut Vec<T>) {
+    pub fn mergesort<T: Send + Ord + Clone>(arr: &mut Vec<T>) {
 
         let mut block_size= 1;
 
