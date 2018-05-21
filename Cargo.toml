@@ -5,3 +5,4 @@ authors = ["Matthew Kunjummen <mkunjummen@gmail.com>"]
 
 [dependencies]
 scoped_threadpool = "0.1"
+rand = "0.5"

@@ -1,70 +1,68 @@
 extern crate scoped_threadpool;
+extern crate rand;
 
 pub mod csorts {
     use std::vec::Vec;
     use scoped_threadpool::Pool;
     use std::slice;
 
-    fn next_biggest_2pow(size: usize) -> usize {
-        let mut ret = 1;
-        while ret < size {
-            ret *= 2;
-        }
-        ret
-    }
+    pub fn mergesort<T>(arr: &mut Vec<T>)
+        where T: Ord + Send + Clone
+    {
 
-    pub fn mergesort<T: Send + Ord + Clone>(arr: &mut Vec<T>) {
+        let mut block_size= 2;
 
-        let mut block_size= 1;
-
-        // ceiling integer divison
-        let largest_block_size = next_biggest_2pow(arr.len());
         let arr_len = arr.len();
 
-        while block_size < largest_block_size {
-            block_size *= 2;
+        let largest_block_size = 2*arr_len;
 
+        while block_size < largest_block_size {
 
             let num_blocks = (arr.len() - 1)/block_size + 1;
-            let block_list: Vec<usize> = (0..num_blocks).collect();
 
             let mut pool = Pool::new(num_blocks as u32);
 
             pool.scoped(|scope| {
 
-                for block in block_list {
+                for block in 0..num_blocks {
 
                     let first_ind = block*block_size;
                     let last_ind = (block + 1) * block_size;
-                    let mut working_len;
+                    let mut slice_len;
 
-                    let working_slice_ptr = if last_ind >= arr_len + 1 {
-                        working_len = arr[first_ind..].len();
-                        arr[first_ind..].as_mut_ptr()
-                    } else {
-                        working_len = block_size;
-                        arr[first_ind..last_ind].as_mut_ptr()
-                    };
+                    let slice_ptr = if last_ind >= arr_len + 1 {
+                                slice_len = arr[first_ind..].len();
+                                arr[first_ind..].as_mut_ptr()
+                            } else {
+                                slice_len = block_size;
+                                arr[first_ind..last_ind].as_mut_ptr()
+                            };
 
-                    let mut working_slice;
-
-                    unsafe {
-                        working_slice = slice::from_raw_parts_mut(working_slice_ptr, working_len);
-                    }
-
-                    if working_slice.len() == 1 {
+                    if slice_len <= block_size/2 {
                         return;
+
                     } else {
+
+                        let mut arr_slice;
+                        unsafe {
+                            arr_slice = slice::from_raw_parts_mut(slice_ptr, slice_len);
+                        }
+
                         scope.execute(move || {
-                                merge_halves(working_slice, block_size);
+                                merge_halves(arr_slice, block_size);
                         });
                     }
                 }
             });
+
+            block_size *= 2;
         }
     }
 
-    fn merge_halves<T: Ord + Clone>(half_sorted: &mut [T], block_size: usize) {
+    fn merge_halves<T>(half_sorted: &mut [T], block_size: usize)
+        where T: Ord + Clone
+    {
+
         let first = Vec::from(&half_sorted[..(block_size/2)]);
         let last = Vec::from(&half_sorted[(block_size/2)..]);
 
@@ -93,24 +91,38 @@ pub mod csorts {
 #[cfg(test)]
 mod tests {
     use csorts;
+    use rand;
+    use std::vec::Vec;
+    use std::fmt::Debug;
+    use rand::prelude::*;
     #[test]
-    fn it_works() {
+    fn tests() {
+        fuzzer::<char>();
+        fuzzer::<i64>();
+        fuzzer::<u64>();
+    }
+
+    fn fuzzer<T>()
+        where T: Ord + Send + Clone + Debug,
+              rand::distributions::Standard: rand::distributions::Distribution<T>
         {
-            let mut vec1 = vec![4, 3, 2, 1];
-            csorts::mergesort(&mut vec1);
-            assert_eq!(vec1, vec![1, 2, 3, 4]);
-        } {
-            let mut vec1 = vec![8, 7, 6, 5, 4, 3, 2, 1];
-            csorts::mergesort(&mut vec1);
-            assert_eq!(vec1, vec![1, 2, 3, 4, 5, 6, 7, 8]);
-        } {
-            let mut vec1 = vec![1, 2, 5, 6, 4, 3, 4, 7];
-            csorts::mergesort(&mut vec1);
-            assert_eq!(vec1, vec![1, 2, 3, 4, 4, 5, 6, 7]);
-        } {
-            let mut vec1 = vec![9, 1, 2, 5, 6, 4, 3, 4, 7];
-            csorts::mergesort(&mut vec1);
-            assert_eq!(vec1, vec![1, 2, 3, 4, 4, 5, 6, 7, 9]);
+
+        let mut vector = Vec::<T>::with_capacity(100);
+        for _ in 0..100 {
+            vector.push(random());
         }
+
+        vec_test(&mut vector);
+    }
+
+    fn vec_test<T>(subject: &mut Vec<T>) 
+        where T: Ord + Send + Clone + Debug
+    {
+        let mut mine = subject.clone();
+
+        csorts::mergesort(&mut mine);
+        subject.sort();
+
+        assert_eq!(&mut mine, subject);
     }
 }
