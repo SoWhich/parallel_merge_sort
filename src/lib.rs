@@ -95,8 +95,28 @@ mod tests {
     use std::vec::Vec;
     use std::fmt::Debug;
     use rand::prelude::*;
+
     #[test]
-    fn tests() {
+    fn in_order() {
+        vec_test(vec![1]);
+        vec_test(vec![1, 2]);
+        vec_test(vec![1, 2, 3, 4, 5]);
+        vec_test(vec![1, 2, 3, 4, 5, 6, 7, 8]);
+        vec_test(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        vec_test(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    }
+
+    #[test]
+    fn reverse_order() {
+        vec_test(vec![2, 1]);
+        vec_test(vec![5, 4, 3, 2, 1]);
+        vec_test(vec![8, 7, 6, 5, 4, 3, 2, 1]);
+        vec_test(vec![12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+        vec_test(vec![15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    }
+
+    #[test]
+    fn fuzz() {
         fuzzer::<char>();
         fuzzer::<i64>();
         fuzzer::<u64>();
@@ -112,10 +132,10 @@ mod tests {
             vector.push(random());
         }
 
-        vec_test(&mut vector);
+        vec_test(vector);
     }
 
-    fn vec_test<T>(subject: &mut Vec<T>) 
+    fn vec_test<T>(mut subject: Vec<T>) 
         where T: Ord + Send + Clone + Debug
     {
         let mut mine = subject.clone();
@@ -123,6 +143,6 @@ mod tests {
         csorts::mergesort(&mut mine);
         subject.sort();
 
-        assert_eq!(&mut mine, subject);
+        assert_eq!(&mut mine, &mut subject);
     }
 }
