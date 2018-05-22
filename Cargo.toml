@@ -1,5 +1,5 @@
 [package]
-name = "concmerge"
+name = "parallel_merge_sort"
 version = "0.1.0"
 authors = ["Matthew Kunjummen <mkunjummen@gmail.com>"]
 
