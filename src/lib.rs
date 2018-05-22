@@ -56,7 +56,6 @@ pub fn merge_sort<T>(arr: &mut Vec<T>)
 
                 let first_ind = block*block_size;
                 let last_ind = (block + 1) * block_size;
-                let slice_len;
 
                 // this needs to be a pointer and use unsafe because otherwise
                 // the borrow checker gets mad at me :(
@@ -64,13 +63,16 @@ pub fn merge_sort<T>(arr: &mut Vec<T>)
                 // will merge. because each block size finishes before the next
                 // one starts, there is no overlap, so don't be scared about
                 // memory corruption.
-                let slice_ptr = if last_ind >= arr.len() + 1 {
-                            slice_len = arr[first_ind..].len();
-                            arr[first_ind..].as_mut_ptr()
-                        } else {
-                            slice_len = block_size;
-                            arr[first_ind..last_ind].as_mut_ptr()
-                        };
+                let slice_len;
+                let slice_ptr;
+
+                if last_ind > arr.len() {
+                    slice_len = arr[first_ind..].len();
+                    slice_ptr = arr[first_ind..].as_mut_ptr();
+                } else {
+                    slice_len = block_size;
+                    slice_ptr = arr[first_ind..last_ind].as_mut_ptr()
+                };
 
                 // If this is the case, we've
                 //      a. reached the end of the array, and
