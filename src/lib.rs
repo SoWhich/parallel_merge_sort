@@ -1,4 +1,4 @@
-//! # Parallel Mergesort
+//! # Parallel Merge Sort
 //!
 //! `parallel_merge_sort` is an implementation of Merge Sort for an
 //! `std::vec::Vec` that sorts blocks of equal size in parallel threads.
@@ -32,9 +32,7 @@ pub fn merge_sort<T>(arr: &mut Vec<T>)
 
     let mut block_size= 2;
 
-    let arr_len = arr.len();
-
-    let largest_block_size = 2*arr_len;
+    let largest_block_size = 2*arr.len();
 
     while block_size < largest_block_size {
 
@@ -50,7 +48,7 @@ pub fn merge_sort<T>(arr: &mut Vec<T>)
                 let last_ind = (block + 1) * block_size;
                 let mut slice_len;
 
-                let slice_ptr = if last_ind >= arr_len + 1 {
+                let slice_ptr = if last_ind >= arr.len() + 1 {
                             slice_len = arr[first_ind..].len();
                             arr[first_ind..].as_mut_ptr()
                         } else {
