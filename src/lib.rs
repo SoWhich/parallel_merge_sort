@@ -3,9 +3,9 @@
 //! `parallel_merge_sort` is an implementation of Merge Sort for a mutable
 //! slice that sorts blocks of equal size in parallel threads.
 
+extern crate num_cpus;
 extern crate rand;
 extern crate scoped_threadpool;
-extern crate num_cpus;
 
 use scoped_threadpool::Pool;
 //use std::slice;
@@ -31,7 +31,7 @@ where
     let mut block_size = 2;
 
     let largest_block_size = 2 * arr.len();
-    let mut pool = Pool::new(num_cpus::get());
+    let mut pool = Pool::new(num_cpus::get() as u32);
 
     while block_size < largest_block_size {
         // the scope of the pooled threads is locked within this lambda, so
@@ -122,7 +122,6 @@ mod tests {
 
     #[test]
     fn in_order() {
-        vec_test(vec![1]);
         vec_test(vec![1, 2]);
         vec_test(vec![1, 2, 3, 4, 5]);
         vec_test(vec![1, 2, 3, 4, 5, 6, 7, 8]);
@@ -144,6 +143,12 @@ mod tests {
         fuzzer::<char>();
         fuzzer::<i64>();
         fuzzer::<u64>();
+    }
+
+    #[test]
+    fn edge() {
+        vec_test(vec![1]);
+        vec_test(Vec::<u32>::new());
     }
 
     fn fuzzer<T>()
