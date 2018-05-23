@@ -45,7 +45,7 @@ where
                     // and merge the halves of the slice (in parallel!)
                     scope.execute(move || {
                         //                      merge_halves(block, block_size);
-                        less_safe_merge_halves(block, block_size);
+                        merge_halves(block, block_size);
                     });
                 }
             }
@@ -73,69 +73,37 @@ where
 
 fn merge_halves<T>(half_sorted: &mut [T], block_size: usize)
 where
-    T: Ord + Clone,
-{
-    // I know having index values checked against the length is not exactly
-    // idiomatic rust, but with the non-mutable iterator, you can't get the
-    // currently accessed value from the iterator itself without capturing the
-    // return of `next`, so it takes two more variables and a lot of unwrap and
-    // is_none to work, which makes (IMO) the code significantly less readable.
-    //
-    // I get that having a mutable iterator would solve some of those problems,
-    // but I have no intention of mutating anything, so that seems like bad
-    // practice
-    //
-    // This works sufficiently.
-    let first = Vec::from(&half_sorted[..(block_size / 2)]);
-    let last = Vec::from(&half_sorted[(block_size / 2)..]);
-
-    let mut first_cur = 0;
-    let mut last_cur = 0;
-
-    // I get that i'm repeating some code here, but
-    //      a. it's two lines
-    //      b. i'm hard pressed to think of a better way
-    //
-    // I can't consolidate them into one if because I don't know until the last
-    // else that both first[first_cur] and last[last_cur] have valid values
-    for elem in half_sorted.iter_mut() {
-        if first_cur == first.len() {
-            *elem = last[last_cur].clone();
-            last_cur += 1;
-        } else if last_cur == last.len() || first[first_cur] <= last[last_cur] {
-            *elem = first[first_cur].clone();
-            first_cur += 1;
-        } else {
-            *elem = last[last_cur].clone();
-            last_cur += 1;
-        }
-    }
-}
-
-fn less_safe_merge_halves<T>(half_sorted: &mut [T], block_size: usize)
-where
     T: Ord,
 {
-    let mut cur = half_sorted.as_mut_ptr();
-    let mut first = cur;
-    let mut first_block_size = block_size / 2;
+    // because the element to be written to resides where the first block starts, there's only one
+    // pointer needed to refer to both
+    let mut first = half_sorted.as_mut_ptr();
     let mut second: *mut T = &mut half_sorted[(block_size / 2)];
 
+    let mut first_block_size = block_size / 2;
+
     unsafe {
+        // end points to the first instance of invalid memory beyond the end of the slice and is
+        // NEVER dereferenced
         let end: *mut T = (&mut half_sorted[half_sorted.len() - 1] as *mut T).add(1);
-        while cur != end {
-            if first == second || second == end {
-                return;
-            } else if *first < *second {
-                cur = cur.add(1);
+
+        // if one block is finished, the remainder of the slice is just the other block, so the
+        // function can return
+        while first != second && second != end {
+            // if the first element of the first block is the smaller one, it can just move forwards
+            if *first < *second {
                 first = first.add(1);
                 first_block_size -= 1;
+
+            // otherwise, things get a little more complicated. The first element of the second
+            // block needs to be copied to a temporary, while all of the first block is shifted
+            // over one unit. the temporary is then copied back, and first and second are
+            // incremented
             } else {
                 let tmp = second.read();
                 first.copy_to(first.add(1), first_block_size);
+                first.write(tmp);
                 first = first.add(1);
-                cur.write(tmp);
-                cur = cur.add(1);
                 second = second.add(1);
             }
         }
