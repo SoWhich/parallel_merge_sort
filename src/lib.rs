@@ -8,7 +8,6 @@ extern crate rand;
 extern crate scoped_threadpool;
 
 use scoped_threadpool::Pool;
-//use std::slice;
 use std::vec::Vec;
 
 /// # Merge Sort
@@ -45,7 +44,8 @@ where
                 } else {
                     // and merge the halves of the slice (in parallel!)
                     scope.execute(move || {
-                        merge_halves(block, block_size);
+                        //                      merge_halves(block, block_size);
+                        less_safe_merge_halves(block, block_size);
                     });
                 }
             }
@@ -108,6 +108,36 @@ where
         } else {
             *elem = last[last_cur].clone();
             last_cur += 1;
+        }
+    }
+}
+
+fn less_safe_merge_halves<T>(half_sorted: &mut [T], block_size: usize)
+where
+    T: Ord,
+{
+    let mut cur = half_sorted.as_mut_ptr();
+    let mut first = cur;
+    let mut first_block_size = block_size / 2;
+    let mut second: *mut T = &mut half_sorted[(block_size / 2)];
+
+    unsafe {
+        let end: *mut T = (&mut half_sorted[half_sorted.len() - 1] as *mut T).add(1);
+        while cur != end {
+            if first == second || second == end {
+                return;
+            } else if *first < *second {
+                cur = cur.add(1);
+                first = first.add(1);
+                first_block_size -= 1;
+            } else {
+                let tmp = second.read();
+                first.copy_to(first.add(1), first_block_size);
+                first = first.add(1);
+                cur.write(tmp);
+                cur = cur.add(1);
+                second = second.add(1);
+            }
         }
     }
 }
