@@ -25,7 +25,7 @@ use std::vec::Vec;
 /// -> Vec<T>`.
 pub fn merge_sort<T>(arr: &mut [T])
 where
-    T: Ord + Send + Clone,
+    T: Ord + Send,
 {
     let mut block_size = 2;
 
