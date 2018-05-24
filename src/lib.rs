@@ -154,8 +154,9 @@ mod tests {
         T: Ord + Send + Clone + Debug,
         rand::distributions::Standard: rand::distributions::Distribution<T>,
     {
-        let mut vector = Vec::<T>::with_capacity(100);
-        for _ in 0..100 {
+        let fuzz_cap = 100;
+        let mut vector = Vec::<T>::with_capacity(fuzz_cap);
+        for _ in 0..fuzz_cap {
             vector.push(random());
         }
 
