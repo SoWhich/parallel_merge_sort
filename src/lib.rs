@@ -102,25 +102,31 @@ fn merge_halves<T>(half_sorted: &mut [T], block_size: usize)
 where
     T: Ord,
 {
-    // because the element to be written to resides where the first block starts, there's only one
-    // pointer needed to refer to both
     let mut first_block_size = block_size / 2;
-    unsafe {
-        let mut first_block = Vec::with_capacity(block_size);
 
-        let mut first = first_block.as_mut_ptr();
-        let mut cur = half_sorted.as_mut_ptr();
-        let mut second: *mut T = &mut half_sorted[(block_size / 2)];
+    // this buffer stores the contents of the first half of half_sorted.
+    // Clone is not required because the contents are copied over as bytes and
+    // never dropped because the length of the vec is never set to anything
+    // greater than zero
+    //
+    // there's no getting around at least a 50% memory overhead, because the
+    // "inplace" version previously attempted called copy and copy_to, which
+    // create buffers of the contents within themselves, so having the buffer
+    // created ahead of time spares repeated allocations and frees
+    let mut first_block = Vec::with_capacity(first_block_size);
+
+    let mut first = first_block.as_mut_ptr();
+    let mut cur = half_sorted.as_mut_ptr();
+    let mut second: *mut T = &mut half_sorted[first_block_size];
+
+    unsafe {
         ptr::copy_nonoverlapping(cur, first, first_block_size);
 
-        // end points to the first instance of invalid memory beyond the end of the slice and is
-        // NEVER dereferenced
+        // end points to the first instance of invalid memory beyond the end of
+        // the slice and is NEVER dereferenced
         let end = (&mut half_sorted[half_sorted.len() - 1] as *mut T).add(1);
 
-        // if one block is finished, the remainder of the slice is just the other block, so the
-        // function can return
         while cur != end {
-            // if the first element of the first block is the smaller one, it can just move forwards
             if first_block_size == 0 {
                 return;
             } else if second == end {
