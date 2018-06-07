@@ -111,7 +111,6 @@ where
         let mut first = first_block.as_mut_ptr();
         let mut cur = half_sorted.as_mut_ptr();
         let mut second: *mut T = &mut half_sorted[(block_size / 2)];
-
         ptr::copy_nonoverlapping(cur, first, first_block_size);
 
         // end points to the first instance of invalid memory beyond the end of the slice and is
@@ -147,8 +146,54 @@ mod tests {
     use super::*;
     use rand;
     use rand::prelude::*;
+    use std::cmp::Ordering;
     use std::fmt::Debug;
     use std::vec::Vec;
+
+    #[derive(Debug, Clone)]
+    struct Dropper {
+        num: i32,
+        is_dropped: Box<bool>,
+    }
+
+    impl Dropper {
+        fn new(num: i32) -> Dropper {
+            Dropper {
+                num: num,
+                is_dropped: Box::from(false),
+            }
+        }
+    }
+
+    impl Drop for Dropper {
+        fn drop(&mut self) {
+            if !*self.is_dropped {
+                *self.is_dropped = true;
+            } else {
+                panic!();
+            }
+        }
+    }
+
+    impl Ord for Dropper {
+        fn cmp(&self, other: &Dropper) -> Ordering {
+            self.num.cmp(&other.num)
+        }
+    }
+
+    impl PartialOrd for Dropper {
+        fn partial_cmp(&self, other: &Dropper) -> Option<Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+
+    impl PartialEq for Dropper {
+        fn eq(&self, other: &Dropper) -> bool {
+            self.num == other.num
+        }
+    }
+
+    impl Eq for Dropper {}
 
     #[test]
     fn in_order() {
@@ -184,6 +229,13 @@ mod tests {
             String::from("y"),
             String::from("x"),
             String::from("w"),
+        ]);
+        vec_test(vec![
+            Dropper::new(0),
+            Dropper::new(1),
+            Dropper::new(2),
+            Dropper::new(3),
+            Dropper::new(4),
         ]);
     }
 
