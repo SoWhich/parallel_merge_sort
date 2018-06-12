@@ -67,6 +67,7 @@ mod tests {
         b.iter(|| {
             let mut vec = fuzzy_vec_generate::<usize>();
             sort(&mut vec);
+            println!("{:?}", vec);
         });
     }
 
@@ -75,6 +76,7 @@ mod tests {
         b.iter(|| {
             let mut vec = ordered_vec_generate::<usize>();
             sort(&mut vec);
+            println!("{:?}", vec);
         });
     }
 
@@ -83,6 +85,7 @@ mod tests {
         b.iter(|| {
             let mut vec = rev_vec_generate::<usize>();
             sort(&mut vec);
+            println!("{:?}", vec);
         });
     }
 }
