@@ -123,20 +123,24 @@ where
         let end = (&mut half_sorted[half_sorted.len() - 1] as *mut T).add(1);
 
         while cur != end {
-            if first_block_size == 0 {
-                return;
-            } else if second == end {
-                ptr::copy_nonoverlapping(first, cur, first_block_size);
-                return;
-            } else if *first <= *second {
+            if *first <= *second {
                 cur.write(first.read());
-                first = first.add(1);
                 cur = cur.add(1);
+                first = first.add(1);
                 first_block_size -= 1;
+
+                if first_block_size == 0 {
+                    return;
+                }
             } else {
                 cur.write(second.read());
-                second = second.add(1);
                 cur = cur.add(1);
+                second = second.add(1);
+
+                if second == end {
+                    ptr::copy_nonoverlapping(first, cur, first_block_size);
+                    return;
+                }
             }
         }
     }
