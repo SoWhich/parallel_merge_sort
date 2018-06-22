@@ -62,11 +62,12 @@ where
     }
 }
 
+#[inline]
 fn is_sorted<T>(block: &[T], block_size: usize) -> bool
 where
     T: Ord,
 {
-    return block[block_size / 2 - 1] <= block[block_size / 2];
+    block[block_size / 2 - 1] <= block[block_size / 2]
 }
 
 /// # Generate and Sort
