@@ -62,7 +62,7 @@ fn is_sorted<T>(block: &[T], block_size: usize) -> bool
 where
     T: Ord,
 {
-    block[block_size / 2 - 1] <= block[block_size / 2]
+    block.get(block_size / 2 - 1) <= block.get(block_size / 2)
 }
 
 /// # Generate and Sort
