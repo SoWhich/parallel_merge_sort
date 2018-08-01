@@ -33,9 +33,9 @@ where
 
     let largest_block_size = 2 * arr.len();
 
-    let mut buff: Vec<T> = Vec::with_capacity((arr.len() + 1) / 2);
+    let mut buff: Vec<T> = Vec::with_capacity(greatest_lt_bit(arr.len()));
     unsafe {
-        buff.set_len((arr.len() + 1) / 2);
+        buff.set_len(greatest_lt_bit(arr.len()));
     }
     while block_size < largest_block_size {
         // the scope of the pooled threads is locked within this lambda, so
@@ -54,7 +54,7 @@ where
                 .zip(buff.par_chunks_mut(block_size / 2))
                 .for_each(|(block, buff)| {
                     if block.len() > block_size / 2 && !is_sorted(block, block_size) {
-                        merge_halves(block, buff, block_size);
+                        merge_halves(block, buff);
                     }
                 });
         }
@@ -90,11 +90,11 @@ where
     ret
 }
 
-fn merge_halves<T>(half_sorted: &mut [T], first_block: &mut [T], block_size: usize)
+fn merge_halves<T>(half_sorted: &mut [T], first_block: &mut [T])
 where
     T: Ord,
 {
-    let mut first_block_size = block_size / 2;
+    let mut first_block_size = first_block.len();
     let mut first = first_block.as_mut_ptr();
     let mut cur = half_sorted.as_mut_ptr();
     let mut second: *mut T = &mut half_sorted[first_block_size];
@@ -126,6 +126,18 @@ where
                     return;
                 }
             }
+        }
+    }
+}
+
+#[inline]
+fn greatest_lt_bit(val: usize) -> usize {
+    if val.is_power_of_two() {
+        val >> 1
+    } else {
+        match val.checked_next_power_of_two() {
+            None => 1usize.rotate_right(1),
+            Some(val) => val >> 1,
         }
     }
 }
