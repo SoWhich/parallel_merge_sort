@@ -40,23 +40,20 @@ where
     while block_size < largest_block_size {
         // the scope of the pooled threads is locked within this lambda, so
         // the program blocks until their completion at its end.
-        if cfg!(feature = "noparallel") {
-            for (block, buff) in arr
-                .chunks_mut(block_size)
-                .zip(buff.chunks_mut(block_size / 2))
-            {
-                if block.len() > block_size / 2 && !is_sorted(block, block_size) {
-                    merge_halves(block, buff, block_size);
-                }
+        let merge = move |(block, buff): (&mut [T], &mut [T])| {
+            if block.len() > block_size / 2 && !is_sorted(block, block_size) {
+                merge_halves(block, buff);
             }
+        };
+
+        if cfg!(feature = "noparallel") {
+            arr.chunks_mut(block_size)
+                .zip(buff.chunks_mut(block_size / 2))
+                .for_each(merge);
         } else {
             arr.par_chunks_mut(block_size)
                 .zip(buff.par_chunks_mut(block_size / 2))
-                .for_each(|(block, buff)| {
-                    if block.len() > block_size / 2 && !is_sorted(block, block_size) {
-                        merge_halves(block, buff);
-                    }
-                });
+                .for_each(merge);
         }
 
         block_size *= 2;
