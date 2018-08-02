@@ -2,7 +2,6 @@
 //!
 //! `parallel_merge_sort` is an implementation of Merge Sort for a mutable
 //! slice that sorts blocks of equal size in parallel threads.
-extern crate rand;
 extern crate rayon;
 
 use rayon::prelude::*;
