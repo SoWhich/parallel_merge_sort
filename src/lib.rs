@@ -39,7 +39,7 @@ where
     while block_size < largest_block_size {
         // the scope of the pooled threads is locked within this lambda, so
         // the program blocks until their completion at its end.
-        let merge = move |(block, buff): (&mut [T], &mut [T])| {
+        let merge = move |(block, buff): (&mut [T], &mut [T])| unsafe {
             if block.len() > block_size / 2 && !is_sorted(block, block_size) {
                 merge_halves(block, buff);
             }
@@ -86,7 +86,7 @@ where
     ret
 }
 
-fn merge_halves<T>(half_sorted: &mut [T], first_block: &mut [T])
+unsafe fn merge_halves<T>(half_sorted: &mut [T], first_block: &mut [T])
 where
     T: Ord,
 {
@@ -95,32 +95,29 @@ where
     let mut cur = half_sorted.as_mut_ptr();
     let mut second: *mut T = &mut half_sorted[first_block_size];
 
-    unsafe {
-        ptr::copy_nonoverlapping(cur, first, first_block_size);
+    ptr::copy_nonoverlapping(cur, first, first_block_size);
 
-        // end points to the first instance of invalid memory beyond the end of
-        // the slice and is NEVER dereferenced
-        let end = (&mut half_sorted[half_sorted.len() - 1] as *mut T).add(1);
+    // end points to the first instance of invalid memory beyond the end of
+    // the slice and is NEVER dereferenced
+    let end = (&mut half_sorted[half_sorted.len() - 1] as *mut T).add(1);
 
-        while cur != end {
-            if *first <= *second {
-                cur.write(first.read());
-                cur = cur.add(1);
-                first = first.add(1);
-                first_block_size -= 1;
+    while cur != end {
+        if *first <= *second {
+            cur.write(first.read());
+            cur = cur.add(1);
+            first = first.add(1);
+            first_block_size -= 1;
 
-                if first_block_size == 0 {
-                    return;
-                }
-            } else {
-                cur.write(second.read());
-                cur = cur.add(1);
-                second = second.add(1);
-
-                if second == end {
-                    ptr::copy_nonoverlapping(first, cur, first_block_size);
-                    return;
-                }
+            if first_block_size == 0 {
+                return;
+            }
+        } else {
+            cur.write(second.read());
+            cur = cur.add(1);
+            second = second.add(1);
+            if second == end {
+                ptr::copy_nonoverlapping(first, cur, first_block_size);
+                return;
             }
         }
     }
