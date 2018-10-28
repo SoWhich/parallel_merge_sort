@@ -28,35 +28,44 @@ pub fn merge_sort<T>(arr: &mut [T])
 where
     T: Ord + Send,
 {
-    let mut block_size = 2;
+    let buff_size = arr
+        .len()
+        .wrapping_sub(1)
+        .checked_next_power_of_two()
+        .unwrap_or(0);
 
-    let largest_block_size = 2 * arr.len();
+    let mut buff: Vec<T> = Vec::with_capacity(buff_size);
 
-    let mut buff: Vec<T> = Vec::with_capacity(greatest_lt_bit(arr.len()));
     unsafe {
-        buff.set_len(greatest_lt_bit(arr.len()));
+        buff.set_len(buff_size);
     }
-    while block_size < largest_block_size {
+
+    for (buff_block_size, arr_block_size) in (0..)
+        .map(|num| 1 << num)
+        .take_while(|block_size| *block_size <= buff_size)
+        .zip((1..).map(|num| 1 << num))
+    {
         // the scope of the pooled threads is locked within this lambda, so
         // the program blocks until their completion at its end.
-        let merge = move |(block, buff): (&mut [T], &mut [T])| unsafe {
-            if block.len() > block_size / 2 && !is_sorted(block, block_size) {
+        let merge = |(block, buff): (&mut [T], &mut [T])| unsafe {
+            if block.len() <= buff_block_size || is_sorted(block, arr_block_size) {
+                return;
+            } else {
                 merge_halves(block, buff);
             }
         };
 
         if cfg!(feature = "noparallel") {
-            arr.chunks_mut(block_size)
-                .zip(buff.chunks_mut(block_size / 2))
+            arr.chunks_mut(arr_block_size)
+                .zip(buff.chunks_mut(buff_block_size))
                 .for_each(merge);
         } else {
-            arr.par_chunks_mut(block_size)
-                .zip(buff.par_chunks_mut(block_size / 2))
+            arr.par_chunks_mut(arr_block_size)
+                .zip(buff.par_chunks_mut(buff_block_size))
                 .for_each(merge);
         }
-
-        block_size *= 2;
     }
+
     unsafe {
         buff.set_len(0);
     }
@@ -119,18 +128,6 @@ where
                 ptr::copy_nonoverlapping(first, cur, first_block_size);
                 return;
             }
-        }
-    }
-}
-
-#[inline]
-fn greatest_lt_bit(val: usize) -> usize {
-    if val.is_power_of_two() {
-        val >> 1
-    } else {
-        match val.checked_next_power_of_two() {
-            None => 1usize.rotate_right(1),
-            Some(val) => val >> 1,
         }
     }
 }
