@@ -21,9 +21,6 @@ use std::vec::Vec;
 /// an input and output parameter. If you would like the function to generate
 /// a new (sorted) vector, please use the function `gen_and_sort<T>(&[T])
 /// -> Vec<T>`.
-///
-/// The `merge_sort` function can be sorted without allocating extra memory if
-/// compiled with `--cfg inplace`.
 pub fn merge_sort<T>(arr: &mut [T])
 where
     T: Ord + Send,
@@ -79,22 +76,6 @@ where
     block.get(block_size / 2 - 1) <= block.get(block_size / 2)
 }
 
-/// # Generate and Sort
-/// This function generates a new (now sorted) vector when given an immutable
-/// slice reference.
-///
-/// Because this function is merely light function overhead for the prior
-/// `merge_sort<T>(arr: &mut Vec<T>)`, the use of that function should be
-/// encouraged over this.
-pub fn gen_and_sort<T>(arr: &[T]) -> Vec<T>
-where
-    T: Ord + Send + Clone,
-{
-    let mut ret = Vec::from(arr);
-    merge_sort(&mut ret);
-    ret
-}
-
 unsafe fn merge_halves<T>(half_sorted: &mut [T], first_block: &mut [T])
 where
     T: Ord,
@@ -124,6 +105,7 @@ where
             cur.write(second.read());
             cur = cur.add(1);
             second = second.add(1);
+
             if second == end {
                 ptr::copy_nonoverlapping(first, cur, first_block_size);
                 return;
